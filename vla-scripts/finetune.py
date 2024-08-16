@@ -85,7 +85,7 @@ class FinetuneConfig:
 
     # Fine-tuning Parameters
     batch_size: int = 16                                            # Fine-tuning batch size
-    max_steps: int = 200_000                                        # Max number of fine-tuning steps
+    max_steps: int = 100_000                                        # Max number of fine-tuning steps
     save_steps: int = 5000                                          # Interval for checkpoint saving
     learning_rate: float = 2e-5                                     # Fine-tuning learning rate
     grad_accumulation_steps: int = 1                                # Gradient accumulation steps
@@ -107,6 +107,13 @@ class FinetuneConfig:
     wandb_entity: str = "stanford-voltron"                          # Name of entity to log under
     run_id_note: Optional[str] = None                               # Extra note for logging, Weights & Biases
 
+    # learning rate decay
+    use_lr_decay: bool = True                                  # Whether to use learning rate decay
+    num_warmup_steps: int = 100                               # Number of warmup steps
+    # lr_decay_step_size: int = 50                                # Number of steps over which to decay the learning rate
+    # gamma = 0.5
+    min_lr = 2e-5
+    resumed: bool = False
     # fmt: on
 
 
@@ -125,6 +132,8 @@ def finetune(cfg: FinetuneConfig) -> None:
         f"{cfg.vla_path.split('/')[-1]}+{cfg.dataset_name}"
         f"+b{cfg.batch_size * cfg.grad_accumulation_steps}"
         f"+lr-{cfg.learning_rate}"
+        f"+{'lr-decay' if cfg.use_lr_decay else ''}"
+        f"+{'resumed' if cfg.resumed else ''}"
     )
     if cfg.use_lora:
         exp_id += f"+lora-r{cfg.lora_rank}+dropout-{cfg.lora_dropout}"
@@ -187,6 +196,13 @@ def finetune(cfg: FinetuneConfig) -> None:
     # Create Optimizer =>> note that we default to a simple constant learning rate!
     trainable_params = [param for param in vla.parameters() if param.requires_grad]
     optimizer = AdamW(trainable_params, lr=cfg.learning_rate)
+
+    # Setup Learning Rate Scheduler
+    if cfg.use_lr_decay:
+        # scheduler = torch.optim.lr_scheduler.StepLR(optimizer=optimizer, step_size=cfg.lr_decay_step_size, gamma=cfg.gamma)
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer=optimizer, T_max=cfg.num_warmup_steps, eta_min=cfg.min_lr)
+    else:
+        scheduler = None
 
     # Create Action Tokenizer
     action_tokenizer = ActionTokenizer(processor.tokenizer)
@@ -301,33 +317,37 @@ def finetune(cfg: FinetuneConfig) -> None:
             smoothened_l1_loss = sum(recent_l1_losses) / len(recent_l1_losses)
 
             # Push Metrics to W&B (every 10 gradient steps)
-            if distributed_state.is_main_process and gradient_step_idx % 10 == 0:
-                wandb.log(
-                    {
-                        "train_loss": smoothened_loss,
-                        "action_accuracy": smoothened_action_accuracy,
-                        "l1_loss": smoothened_l1_loss,
-                    },
-                    step=gradient_step_idx,
-                )
+            if distributed_state.is_main_process and gradient_step_idx % 5 == 0:
+                wandb.log({
+                    "train_loss": smoothened_loss, 
+                    "action_accuracy": smoothened_action_accuracy, 
+                    "l1_loss": smoothened_l1_loss,
+                    "learning_rate": scheduler.get_last_lr()[0] if scheduler else cfg.learning_rate,
+                }, step=gradient_step_idx)
 
             # Optimizer Step
             if (batch_idx + 1) % cfg.grad_accumulation_steps == 0:
                 optimizer.step()
+                if scheduler is not None:
+                    scheduler.step()
                 optimizer.zero_grad()
                 progress.update()
 
             # Save Model Checkpoint =>> by default, only keeps the latest checkpoint, continually overwriting it!
             if gradient_step_idx > 0 and gradient_step_idx % cfg.save_steps == 0:
+                step_run_dir = os.path.join(run_dir, f"step-{gradient_step_idx}")
+                os.makedirs(step_run_dir, exist_ok=True)
                 if distributed_state.is_main_process:
                     print(f"Saving Model Checkpoint for Step {gradient_step_idx}")
 
                     # If LoRA, we first save adapter weights, then merge into full model; otherwise, default save!
-                    save_dir = adapter_dir if cfg.use_lora else run_dir
+                    save_dir = adapter_dir if cfg.use_lora else step_run_dir
+                    step_save_dir = os.path.join(save_dir, f"step-{gradient_step_idx}")
+                    os.makedirs(step_save_dir, exist_ok=True)
 
                     # Save Processor & Weights
-                    processor.save_pretrained(run_dir)
-                    vla.module.save_pretrained(save_dir)
+                    processor.save_pretrained(step_run_dir)
+                    vla.module.save_pretrained(step_save_dir)
 
                 # Wait for processor and adapter weights to be saved by main process
                 dist.barrier()
@@ -360,8 +380,8 @@ def finetune(cfg: FinetuneConfig) -> None:
 
                             print(f"Saved Model Checkpoint for Step {gradient_step_idx} at: {checkpoint_dir}")
 
-                # Block on Main Process Checkpointing
-                dist.barrier()
+                # # Block on Main Process Checkpointing
+                # dist.barrier()
 
 
 if __name__ == "__main__":

@@ -58,7 +58,7 @@ def bridge_oxe_dataset_transform(trajectory: Dict[str, Any]) -> Dict[str, Any]:
     return trajectory
 
 
-def bridge_orig_dataset_transform(trajectory: Dict[str, Any]) -> Dict[str, Any]:
+def bridge_dataset_transform(trajectory: Dict[str, Any]) -> Dict[str, Any]:
     """
     Applies to original version of Bridge V2 from the official project website.
 
@@ -826,9 +826,13 @@ def tdroid_dataset_transform(trajectory: Dict[str, Any]) -> Dict[str, Any]:
 
 # === Registry ===
 OXE_STANDARDIZATION_TRANSFORMS = {
+    "robotec_o3de_panda_dataset": bridge_dataset_transform, # TODO: probably to write custom transform
+    "robotec_o3de_panda_dataset_one_episode": bridge_dataset_transform, # TODO: probably to write custom transform
+    "robotec_o3de_panda_dataset_200_train_episodes": bridge_dataset_transform, # TODO: probably to write custom transforma
+    "robotec_o3de_panda_dataset_4_cameras": bridge_dataset_transform, # TODO: probably to write custom transforma
     "bridge_oxe": bridge_oxe_dataset_transform,
-    "bridge_orig": bridge_orig_dataset_transform,
-    "bridge_dataset": bridge_orig_dataset_transform,
+    "bridge": bridge_dataset_transform,
+    "bridge_dataset": bridge_dataset_transform,
     "ppgm": ppgm_dataset_transform,
     "ppgm_static": ppgm_dataset_transform,
     "ppgm_wrist": ppgm_dataset_transform,

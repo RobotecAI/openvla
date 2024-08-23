@@ -664,7 +664,27 @@ OXE_DATASET_CONFIGS = {
     },
     "robotec_o3de_panda_dataset_4_cameras": {  # Robotec O3DE dataset
         "image_obs_keys": {"primary": "image1", "secondary": "image2", "tertiary": "image3", "quaternary": "image4", "wrist": None},
-        "image_obs_keys": {"primary": "image1", "secondary": None, "wrist": None},
+        "depth_obs_keys": {"primary": None, "secondary": None, "wrist": None},
+        "state_obs_keys": ["EEF_state", None, "gripper_state"],
+        "state_encoding": StateEncoding.POS_EULER,
+        "action_encoding": ActionEncoding.EEF_POS,
+    },
+    "robotec_o3de_panda_dataset_one_step": {  # Robotec O3DE dataset
+        "image_obs_keys": {"primary": "image", "secondary": None, "wrist": None},
+        "depth_obs_keys": {"primary": None, "secondary": None, "wrist": None},
+        "state_obs_keys": ["EEF_state", None, "gripper_state"],
+        "state_encoding": StateEncoding.POS_EULER,
+        "action_encoding": ActionEncoding.EEF_POS,
+    },
+        "robotec_o3de_panda_dataset_5_steps": {  # Robotec O3DE dataset
+        "image_obs_keys": {"primary": "image", "secondary": None, "wrist": None},
+        "depth_obs_keys": {"primary": None, "secondary": None, "wrist": None},
+        "state_obs_keys": ["EEF_state", None, "gripper_state"],
+        "state_encoding": StateEncoding.POS_EULER,
+        "action_encoding": ActionEncoding.EEF_POS,
+    },
+        "robotec_o3de_panda_dataset_200_train_episodes": {  # Robotec O3DE dataset
+        "image_obs_keys": {"primary": "image", "secondary": None, "wrist": None},
         "depth_obs_keys": {"primary": None, "secondary": None, "wrist": None},
         "state_obs_keys": ["EEF_state", None, "gripper_state"],
         "state_encoding": StateEncoding.POS_EULER,

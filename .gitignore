@@ -150,4 +150,6 @@ data/
 
 # Rollout videos and wandb logs
 rollouts/
+checkpoints/
+adapter_weights
 wandb/

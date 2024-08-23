@@ -44,6 +44,7 @@ from prismatic.util.data_utils import PaddedCollatorForActionPrediction
 from prismatic.vla.action_tokenizer import ActionTokenizer
 from prismatic.vla.datasets import RLDSBatchTransform, RLDSDataset
 from prismatic.vla.datasets.rlds.utils.data_utils import save_dataset_statistics
+import numpy as np
 
 from prismatic.extern.hf.configuration_prismatic import OpenVLAConfig
 from prismatic.extern.hf.modeling_prismatic import OpenVLAForActionPrediction
@@ -108,7 +109,7 @@ class FinetuneConfig:
     run_id_note: Optional[str] = None                               # Extra note for logging, Weights & Biases
 
     # learning rate decay
-    use_lr_decay: bool = True                                  # Whether to use learning rate decay
+    use_lr_decay: bool = False                                  # Whether to use learning rate decay
     num_warmup_steps: int = 100                               # Number of warmup steps
     # lr_decay_step_size: int = 50                                # Number of steps over which to decay the learning rate
     # gamma = 0.5
@@ -261,6 +262,7 @@ def finetune(cfg: FinetuneConfig) -> None:
     recent_losses = deque(maxlen=cfg.grad_accumulation_steps)
     recent_action_accuracies = deque(maxlen=cfg.grad_accumulation_steps)
     recent_l1_losses = deque(maxlen=cfg.grad_accumulation_steps)
+    recent_action_distances = deque(maxlen=cfg.grad_accumulation_steps)
 
     # Train!
     with tqdm.tqdm(total=cfg.max_steps, leave=False) as progress:
@@ -300,11 +302,13 @@ def finetune(cfg: FinetuneConfig) -> None:
                 action_tokenizer.decode_token_ids_to_actions(action_gt[mask].cpu().numpy())
             )
             action_l1_loss = torch.nn.functional.l1_loss(continuous_actions_pred, continuous_actions_gt)
+            action_distance = np.linalg.norm(continuous_actions_gt - continuous_actions_pred)
 
             # Store recent train metrics
             recent_losses.append(loss.item())
             recent_action_accuracies.append(action_accuracy.item())
             recent_l1_losses.append(action_l1_loss.item())
+            recent_action_distances.append(action_distance.item())
 
             # Compute gradient step index
             gradient_step_idx = batch_idx // cfg.grad_accumulation_steps
@@ -315,6 +319,7 @@ def finetune(cfg: FinetuneConfig) -> None:
             smoothened_loss = sum(recent_losses) / len(recent_losses)
             smoothened_action_accuracy = sum(recent_action_accuracies) / len(recent_action_accuracies)
             smoothened_l1_loss = sum(recent_l1_losses) / len(recent_l1_losses)
+            smoothened_action_distance = sum(recent_action_distances) / len(recent_action_distances)
 
             # Push Metrics to W&B (every 10 gradient steps)
             if distributed_state.is_main_process and gradient_step_idx % 5 == 0:
@@ -323,6 +328,7 @@ def finetune(cfg: FinetuneConfig) -> None:
                     "action_accuracy": smoothened_action_accuracy, 
                     "l1_loss": smoothened_l1_loss,
                     "learning_rate": scheduler.get_last_lr()[0] if scheduler else cfg.learning_rate,
+                    "action_distance": smoothened_action_distance
                 }, step=gradient_step_idx)
 
             # Optimizer Step

@@ -9,9 +9,7 @@ torchrun --standalone --nnodes 1 --nproc-per-node 2 vla-scripts/finetune.py \
   --lora_rank 128 \
   --batch_size 1 \
   --grad_accumulation_steps 16 \
-  --learning_rate 5e-4 \
   --image_aug False \
   --wandb_project openvla_test \
   --wandb_entity robotecai-ml \
   --save_steps 50 \
-  --num_warmup_steps 1000 \

@@ -826,10 +826,12 @@ def tdroid_dataset_transform(trajectory: Dict[str, Any]) -> Dict[str, Any]:
 
 # === Registry ===
 OXE_STANDARDIZATION_TRANSFORMS = {
-    "robotec_o3de_panda_dataset": bridge_dataset_transform, # TODO: probably to write custom transform
-    "robotec_o3de_panda_dataset_one_episode": bridge_dataset_transform, # TODO: probably to write custom transform
-    "robotec_o3de_panda_dataset_200_train_episodes": bridge_dataset_transform, # TODO: probably to write custom transforma
-    "robotec_o3de_panda_dataset_4_cameras": bridge_dataset_transform, # TODO: probably to write custom transforma
+    "robotec_o3de_panda_dataset": None, 
+    "robotec_o3de_panda_dataset_one_episode": None, 
+    "robotec_o3de_panda_dataset_4_cameras": None, 
+    "robotec_o3de_panda_dataset_one_step": None,
+    "robotec_o3de_panda_dataset_5_steps": None,
+    "robotec_o3de_panda_dataset_200_train_episodes": None,
     "bridge_oxe": bridge_oxe_dataset_transform,
     "bridge": bridge_dataset_transform,
     "bridge_dataset": bridge_dataset_transform,

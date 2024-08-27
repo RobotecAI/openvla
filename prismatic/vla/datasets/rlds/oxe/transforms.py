@@ -824,14 +824,19 @@ def tdroid_dataset_transform(trajectory: Dict[str, Any]) -> Dict[str, Any]:
     return trajectory
 
 
+def robotec_o3de_panda_dataset_transform(trajectory: Dict[str, Any]) -> Dict[str, Any]:
+    return trajectory
+
+
 # === Registry ===
 OXE_STANDARDIZATION_TRANSFORMS = {
-    "robotec_o3de_panda_dataset": None, 
-    "robotec_o3de_panda_dataset_one_episode": None, 
-    "robotec_o3de_panda_dataset_4_cameras": None, 
-    "robotec_o3de_panda_dataset_one_step": None,
-    "robotec_o3de_panda_dataset_5_steps": None,
-    "robotec_o3de_panda_dataset_200_train_episodes": None,
+    "robotec_o3de_panda_dataset": robotec_o3de_panda_dataset_transform, # NOTE: it is optional to use transforms
+    "robotec_o3de_panda_dataset_one_episode": robotec_o3de_panda_dataset_transform, 
+    "robotec_o3de_panda_dataset_4_cameras": robotec_o3de_panda_dataset_transform, 
+    "robotec_o3de_panda_dataset_one_step": robotec_o3de_panda_dataset_transform,
+    "robotec_o3de_panda_dataset_5_steps": robotec_o3de_panda_dataset_transform,
+    "robotec_o3de_panda_dataset_200_train_episodes": robotec_o3de_panda_dataset_transform,
+    "robotec_o3de_panda_dataset_v8": robotec_o3de_panda_dataset_transform,
     "bridge_oxe": bridge_oxe_dataset_transform,
     "bridge": bridge_dataset_transform,
     "bridge_dataset": bridge_dataset_transform,

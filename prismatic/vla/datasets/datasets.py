@@ -38,6 +38,7 @@ class RLDSBatchTransform:
     def __call__(self, rlds_batch: Dict[str, Any]) -> Dict[str, Any]:
         """Converts a RLDS batch to the format expected by the OpenVLA collator/models."""
         dataset_name, action = rlds_batch["dataset_name"], rlds_batch["action"][0]
+        # NOTE(mkotynia): this line causes that only the image_primary is used even if there are configured more camera views in configs.py
         img = Image.fromarray(rlds_batch["observation"]["image_primary"][0])
         lang = rlds_batch["task"]["language_instruction"].decode().lower()
 
@@ -92,8 +93,10 @@ class RLDSDataset(IterableDataset):
         per_dataset_kwargs, weights = get_oxe_dataset_kwargs_and_weights(
             self.data_root_dir,
             mixture_spec,
+            # NOTE (mkotynia): uncomment when other camera views are supported
+            # load_camera_views=("primary", "secondary", "tertiary", "quaternary"),
             load_camera_views=("primary",),
-            load_depth=False,
+            load_depth=False, #NOTE (mkotynia): change to True when depth is available
             load_proprio=False,
             load_language=True,
             action_proprio_normalization_type=NormalizationType.BOUNDS_Q99,

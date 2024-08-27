@@ -1,3 +1,9 @@
+[tool.poetry]
+name = "openvla"
+version = "0.1.0"   
+description = ""
+authors = [""]
+
 [build-system]
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
